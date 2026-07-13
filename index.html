@@ -324,6 +324,14 @@ button { font-family:inherit; cursor:pointer; }
 .chap-sum { font-size:14px; color:var(--text-2); line-height:22px; margin-top:4px; }
 .chap-meta { font-size:12px; color:var(--text-3); margin-top:6px; }
 .chap-topics { display:flex; flex-wrap:wrap; gap:6px; margin-top:var(--sp-3); }
+.toc-list { list-style:none; margin:var(--sp-3) 0 0; padding:0; }
+.toc-list li button { width:100%; display:flex; align-items:center; gap:var(--sp-2); text-align:left;
+  background:none; border:0; border-top:1px solid var(--border); padding:10px 2px; color:var(--text-1); font-size:14px; cursor:pointer; }
+.toc-list li:first-child button { border-top:0; }
+.toc-list li button:hover { color:var(--primary); }
+.toc-list .toc-num { width:20px; flex:none; color:var(--text-3); font-size:12px; }
+.toc-list .toc-topic { flex:1; min-width:0; }
+.toc-list .toc-st { display:inline-flex; flex:none; }
 .seg { display:flex; gap:4px; }
 .seg > i { width:22px; height:6px; border-radius:var(--r-pill); background:var(--surface-sunken); }
 .seg > i.done { background:var(--primary); }
@@ -537,7 +545,7 @@ button { font-family:inherit; cursor:pointer; }
   </button>
   <span class="spacer"></span>
   <div class="overall" id="overallProg" title=""></div>
-  <button class="tb-link" id="chaptersBtn" aria-label="챕터">챕터</button>
+  <button class="tb-link" id="chaptersBtn" aria-label="목차">목차</button>
   <button class="tb-link" id="meBtn" aria-label="내 학습">내 학습</button>
   <button class="tb-link" id="termsBtn" aria-label="용어 사전">용어</button>
   <button class="icon-btn" id="introBtn" aria-label="소개 다시 보기"></button>
@@ -5675,7 +5683,7 @@ function buildExplain(c) {
    케이스마다 관여 컴포넌트(레인)·흐름(엣지)·검증 포인트(highlight)가 달라
    서로 다른 그림이 렌더된다. structure_note 원문은 그대로 하단에 함께 표시.
    ============================================================ */
-const DIAG = { W:660, laneH:80, labelW:104, padX:16, nodeH:40, nodeGap:14, nodeMaxW:150 };
+const DIAG = { W:660, laneH:108, labelW:104, padX:16, nodeH:40, nodeGap:14, nodeMaxW:150 };
 /* 엣지 종류별 선 스타일 (색은 의미색 규칙 준수 — 검증 포인트만 warn) */
 const EDGE_STYLE = {
   req:     { color:"var(--primary)",       width:1.7, dash:null,   marker:"arrPrimary" },
@@ -5730,6 +5738,11 @@ function diagramAria(dg) {
   return `구성요소: ${lanes}. 흐름: ${flow}.${chk}`;
 }
 
+function pathEl(d, st) {
+  const p = svgEl("path", { d, fill:"none", stroke:st.color, "stroke-width":st.width, "marker-end":`url(#${st.marker})` });
+  if (st.dash) p.setAttribute("stroke-dasharray", st.dash);
+  return p;
+}
 function renderDiagram(dg) {
   const { W, laneH, labelW, padX, nodeH, nodeGap, nodeMaxW } = DIAG;
   const H = dg.lanes.length * laneH;
@@ -5814,31 +5827,32 @@ function renderDiagram(dg) {
       const down = b.lane > a.lane;
       const sy = a.cy + (down ? a.h / 2 : -a.h / 2);
       const ty = b.cy + (down ? -b.h / 2 : b.h / 2);
-      const my = (sy + ty) / 2 + stag * 13;
-      const d = (a.cx === b.cx)
-        ? `M${a.cx} ${sy} L${b.cx} ${ty}`
-        : `M${a.cx} ${sy} L${a.cx} ${my} L${b.cx} ${my} L${b.cx} ${ty}`;
-      const p = svgEl("path", { d, fill:"none", stroke:st.color, "stroke-width":st.width, "marker-end":`url(#${st.marker})` });
-      if (st.dash) p.setAttribute("stroke-dasharray", st.dash);
-      svg.appendChild(p);
-      labelX = (a.cx + b.cx) / 2; labelY = my - 5;
+      const sameCol = Math.abs(a.cx - b.cx) < 1;
+      if (sameCol) {
+        // 같은 세로줄 — 양방향이면 좌우로 충분히 벌려 라벨·화살표 겹침 방지
+        const xoff = g.length > 1 ? stag * 96 : 0;
+        const x = a.cx + xoff;
+        svg.appendChild(pathEl(`M${x} ${sy} L${x} ${ty}`, st));
+        labelX = x; labelY = (sy + ty) / 2 + 4;
+      } else {
+        const my = (sy + ty) / 2 + stag * 14;
+        svg.appendChild(pathEl(`M${a.cx} ${sy} L${a.cx} ${my} L${b.cx} ${my} L${b.cx} ${ty}`, st));
+        labelX = (a.cx + b.cx) / 2; labelY = my - 5;
+      }
     }
 
-    // 엣지 라벨 (배경 rect + 텍스트)
+    // 엣지 라벨 (배경 rect + 텍스트) + 검증 배지는 라벨 옆으로
     if (e.label) {
       labelX = Math.max(labelW + 6, Math.min(W - 8, labelX));
       const approxW = e.label.length * 6.4 + 8;
       svg.appendChild(svgEl("rect", { x:labelX - approxW / 2, y:labelY - 11, width:approxW, height:15, rx:3,
-        fill:"var(--surface)", opacity:".9" }));
+        fill:"var(--surface)", opacity:".92" }));
       const t = svgEl("text", { x:labelX, y:labelY, "text-anchor":"middle", "font-size":"10.5",
         fill: isCheck ? "var(--warn)" : st.color, "font-weight": isCheck ? "700" : "500" });
       t.textContent = e.label; svg.appendChild(t);
-    }
-    // 검증 포인트 "?" 배지 (엣지)
-    if (isCheck) {
-      const bx = a.lane === b.lane ? (a.cx + b.cx) / 2 : (a.cx + b.cx) / 2;
-      const by = a.lane === b.lane ? (a.cy - a.h / 2 - 26 - Math.abs(stag) * 12) : ((a.cy + b.cy) / 2 + stag * 13);
-      drawCheckBadge(svg, bx, by);
+      if (isCheck) drawCheckBadge(svg, Math.min(W - 12, labelX + approxW / 2 + 12), labelY - 4);
+    } else if (isCheck) {
+      drawCheckBadge(svg, labelX, labelY);
     }
   });
 
@@ -6124,22 +6138,41 @@ function renderChapters(app) {
   wrap.appendChild(h("button", { class:"btn btn-text", style:"padding-left:0",
     onclick:() => { if (history.length > 1) history.back(); else navigate("#/map"); } },
     [ icon("arrowL", 16), h("span", { text:"뒤로" }) ]));
-  wrap.appendChild(h("h2", { class:"h2", text:"챕터 — 무엇을 배우나" }));
+  wrap.appendChild(h("h2", { class:"h2", text:"목차" }));
   wrap.appendChild(h("p", { class:"lead", style:"font-size:15px",
-    text:"주제 영역마다 훈련하는 검증 사고가 다릅니다. 플레이는 난이도로 하고, 각 챕터가 다루는 소재를 여기서 봅니다." }));
+    text:"챕터별 케이스 전체입니다. 아무 케이스나 눌러 바로 풀 수 있습니다." }));
   LEVEL_ORDER.forEach(lv => {
     const mods = MODULES.filter(m => m.level === lv);
     if (!mods.length) return;
     const sec = h("div", { class:"chap-sec" });
     sec.appendChild(h("div", { class:"chap-level" }, [ h("span", { class:"chip level", text:lv }), h("span", { text:LEVEL_NAME[lv] }) ]));
     mods.forEach(m => {
-      const cs = CASES.filter(c => c.module === m.id);
-      const topics = [...new Set(cs.map(c => c.topic))];
+      const cs = CASES.filter(c => c.module === m.id)
+        .sort((a, b) => (DIFF_ORDER.indexOf(a.difficulty) - DIFF_ORDER.indexOf(b.difficulty)) || a.id.localeCompare(b.id));
       const card = h("div", { class:"chap-card" });
-      card.appendChild(h("div", { class:"chap-head" }, [ h("span", { class:"chap-id", text:m.id }), h("span", { class:"chap-title", text:m.title }) ]));
+      card.appendChild(h("div", { class:"chap-head" }, [
+        h("span", { class:"chap-id", text:m.id }),
+        h("span", { class:"chap-title", text:m.title }),
+        h("span", { class:"chap-meta", style:"margin-left:auto", text:`${cs.length}` })
+      ]));
       card.appendChild(h("div", { class:"chap-sum", text:m.summary }));
-      card.appendChild(h("div", { class:"chap-meta", text:`${cs.length}개 케이스` }));
-      if (topics.length) card.appendChild(h("div", { class:"chap-topics" }, topics.map(t => h("span", { class:"chip topic", text:t }))));
+      const ul = h("ul", { class:"toc-list" });
+      cs.forEach((c, i) => {
+        const attempted = isAttempted(c.id);
+        const ok = progress[c.id] && progress[c.id].firstCorrect;
+        const kids = [
+          h("span", { class:"toc-num", text:`${i + 1}` }),
+          h("span", { class:"toc-topic", text:c.topic }),
+          diffBadge(c.difficulty)
+        ];
+        if (attempted) {
+          const st = h("span", { class:"toc-st" }); st.appendChild(icon(ok ? "check" : "exclaim", 13));
+          st.style.color = ok ? "var(--ok)" : "var(--warn)";
+          kids.push(st);
+        }
+        ul.appendChild(h("li", {}, [ h("button", { type:"button", onclick:() => navigate(`#/case/${c.id}`) }, kids) ]));
+      });
+      card.appendChild(ul);
       sec.appendChild(card);
     });
     wrap.appendChild(sec);
