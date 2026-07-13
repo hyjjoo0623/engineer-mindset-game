@@ -246,6 +246,8 @@ button { font-family:inherit; cursor:pointer; }
   border-left:3px solid var(--primary); border-radius:var(--r-sm); padding:var(--sp-3) var(--sp-4); }
 .term-pop .tp-term { font-weight:600; font-size:14px; }
 .term-pop .tp-def { font-size:13px; color:var(--text-2); line-height:21px; margin-top:4px; }
+.term-pop .tp-ex { font-size:13px; color:var(--text-2); line-height:21px; margin-top:6px; padding-top:6px; border-top:1px solid var(--border); }
+.tp-ex .tp-exlabel, .tt-ex .tt-exlabel { display:inline-block; font-weight:700; color:var(--primary); margin-right:6px; }
 .term-pop .tp-more { display:inline-block; margin-top:6px; font-size:12px; color:var(--primary); }
 /* 용어 사전 화면 */
 .term-list { display:flex; flex-direction:column; gap:var(--sp-3); margin-top:var(--sp-5); }
@@ -254,6 +256,7 @@ button { font-family:inherit; cursor:pointer; }
 .term-card .tt-term { font-size:16px; font-weight:600; }
 .term-card .tt-en { font-size:12px; color:var(--text-3); }
 .term-card .tt-def { font-size:14px; color:var(--text-2); line-height:22px; margin-top:4px; }
+.term-card .tt-ex { font-size:13px; color:var(--text-2); line-height:21px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
 /* 판정 라벨 배지 + 상단바 용어 링크 */
 .badge.vlabel { background:var(--surface-sunken); color:var(--text-2); }
 .badge.vlabel.warn { background:var(--warn-bg); color:var(--warn); }
@@ -311,6 +314,16 @@ button { font-family:inherit; cursor:pointer; }
 .me-line { display:flex; align-items:center; gap:var(--sp-2); margin-top:var(--sp-2); font-size:14px; color:var(--text-2); }
 .me-empty { font-size:13px; color:var(--text-3); }
 .me-q { font-size:13px; color:var(--text-2); line-height:20px; margin-top:6px; }
+/* 챕터 화면 */
+.chap-sec { margin-top:var(--sp-6); }
+.chap-level { display:flex; align-items:center; gap:var(--sp-2); font-size:14px; font-weight:600; color:var(--text-2); margin-bottom:var(--sp-3); }
+.chap-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--sp-4) var(--sp-5); margin-top:var(--sp-3); }
+.chap-head { display:flex; align-items:baseline; gap:var(--sp-2); }
+.chap-head .chap-id { font-size:12px; font-weight:700; color:var(--text-3); }
+.chap-head .chap-title { font-size:16px; font-weight:600; }
+.chap-sum { font-size:14px; color:var(--text-2); line-height:22px; margin-top:4px; }
+.chap-meta { font-size:12px; color:var(--text-3); margin-top:6px; }
+.chap-topics { display:flex; flex-wrap:wrap; gap:6px; margin-top:var(--sp-3); }
 .seg { display:flex; gap:4px; }
 .seg > i { width:22px; height:6px; border-radius:var(--r-pill); background:var(--surface-sunken); }
 .seg > i.done { background:var(--primary); }
@@ -524,6 +537,7 @@ button { font-family:inherit; cursor:pointer; }
   </button>
   <span class="spacer"></span>
   <div class="overall" id="overallProg" title=""></div>
+  <button class="tb-link" id="chaptersBtn" aria-label="챕터">챕터</button>
   <button class="tb-link" id="meBtn" aria-label="내 학습">내 학습</button>
   <button class="tb-link" id="termsBtn" aria-label="용어 사전">용어</button>
   <button class="icon-btn" id="introBtn" aria-label="소개 다시 보기"></button>
@@ -4908,27 +4922,27 @@ function diffBadge(level) {
 
 /* 반드시 알아야 하는 최소 용어 (용어 사전 + 본문 용어 칩) */
 const TERMS = [
-  { id:"client", term:"클라이언트(화면)", en:"client", def:"사용자가 보는 화면·앱. 요청을 보내고 결과를 받아 보여주는 쪽. 계산·저장의 최종 근거지는 아님." },
-  { id:"server", term:"서버", en:"server", def:"요청을 받아 실제 처리를 하는 쪽. 데이터를 조회·계산·저장하고 결과를 돌려줌." },
-  { id:"db", term:"데이터베이스(DB)", en:"database", def:"데이터를 구조적으로 저장·조회하는 저장소. 시스템의 사실이 실제로 사는 곳." },
-  { id:"api", term:"API", en:"", def:"시스템끼리 주고받는 약속. 무엇을 넣으면 무엇이 나오는지 정해진 요청·응답 형식." },
-  { id:"request_response", term:"요청-응답", en:"request/response", def:"클라이언트가 요청을 보내고 서버가 응답을 돌려주는 한 사이클. 한 번의 클릭이 다녀오는 경로." },
-  { id:"authn", term:"인증", en:"authentication", def:"‘누구인가’를 확인하는 것. 로그인이 대표적." },
-  { id:"authz", term:"인가", en:"authorization", def:"‘무엇을 할 수 있나’를 정하는 것. 로그인(인증)과 별개로, 남의 데이터 접근을 막는 건 인가의 몫." },
-  { id:"cache", term:"캐시", en:"cache", def:"빠르게 보여주려고 값을 임시로 담아두는 것. 빠르지만 원본보다 낡을 수 있음." },
-  { id:"idempotency", term:"멱등성", en:"idempotency", def:"같은 요청이 여러 번 와도 결과가 한 번 한 것과 같게 유지되는 성질. 중복 결제 방지의 핵심." },
-  { id:"function_calling", term:"함수호출(툴)", en:"function calling", def:"AI가 자연어 질문을 실제 기능(DB 조회 등)에 연결해 실행하고, 그 결과를 답에 담는 방식." },
-  { id:"transaction", term:"트랜잭션", en:"transaction", def:"여러 작업을 하나로 묶어 모두 성공하거나 모두 취소되게 하는 단위. 부분 실패로 데이터가 어긋나는 걸 막음." },
-  { id:"environment", term:"환경(개발/운영)", en:"environment", def:"코드가 도는 공간의 구분. 개발 환경과 실제 고객이 쓰는 운영 환경은 별개." },
-  { id:"rollback", term:"롤백", en:"rollback", def:"배포·변경이 잘못됐을 때 이전 상태로 되돌리는 것." },
-  { id:"relation", term:"관계(외래키)", en:"relation / foreign key", def:"한 데이터가 다른 데이터를 가리키는 연결. 삭제 시 함께 지울지 막을지 같은 규칙이 여기 붙음." },
-  { id:"coupling", term:"결합도", en:"coupling", def:"부품끼리 얼마나 강하게 묶여 있는지. 강하면 하나를 바꿀 때 여러 곳이 함께 깨짐." },
-  { id:"concurrency", term:"동시성·락", en:"concurrency / lock", def:"여러 요청이 같은 자원을 동시에 다룰 때 생기는 문제. 겹치지 않게 막는 장치가 락." },
-  { id:"rate_limit", term:"레이트리밋", en:"rate limit", def:"짧은 시간에 몰리는 호출 수를 제한하는 것. 오용·과금 폭탄을 막음." },
-  { id:"hallucination", term:"환각", en:"hallucination", def:"AI가 사실이 아닌 내용을 그럴듯하게 지어내는 것. 근거와 대조해 걸러야 함." },
-  { id:"timeout", term:"타임아웃", en:"timeout", def:"응답을 언제까지 기다릴지 정한 한도. 무한정 기다리지 않게 함." },
-  { id:"separation", term:"관심사 분리", en:"separation of concerns", def:"역할이 다른 일을 따로 나눠 두는 것. 하나를 바꿔도 다른 게 안 깨지게 함." },
-  { id:"observability", term:"관측성", en:"observability", def:"문제가 났는지 로그·모니터링으로 알아채는 능력." }
+  { id:"client", term:"클라이언트(화면)", en:"client", def:"사용자가 보는 화면·앱. 요청을 보내고 결과를 받아 보여주는 쪽. 계산·저장의 최종 근거지는 아님.", ex:"주문 목록의 합계가 맞는지 볼 때, 그 숫자를 화면이 계산했는지 서버가 준 값인지 구분해야 한다. 화면은 보여주는 쪽일 뿐이다." },
+  { id:"server", term:"서버", en:"server", def:"요청을 받아 실제 처리를 하는 쪽. 데이터를 조회·계산·저장하고 결과를 돌려줌.", ex:"'내보내기' 버튼이 느릴 때 실제로 데이터를 조회·가공하는 건 서버다. 지연의 원인은 대개 서버·DB 구간에 있다." },
+  { id:"db", term:"데이터베이스(DB)", en:"database", def:"데이터를 구조적으로 저장·조회하는 저장소. 시스템의 사실이 실제로 사는 곳.", ex:"'어제 매출' 같은 정확한 값은 화면이 아는 게 아니라 DB에 저장된 사실을 조회한 결과다." },
+  { id:"api", term:"API", en:"", def:"시스템끼리 주고받는 약속. 무엇을 넣으면 무엇이 나오는지 정해진 요청·응답 형식.", ex:"프론트와 백엔드가 응답 필드명을 두고 다툰다면, 무엇을 넣으면 무엇이 나오는지 정한 API 명세가 기준이 된다." },
+  { id:"request_response", term:"요청-응답", en:"request/response", def:"클라이언트가 요청을 보내고 서버가 응답을 돌려주는 한 사이클. 한 번의 클릭이 다녀오는 경로.", ex:"버튼 한 번 클릭이 화면→서버→DB→응답까지 다녀온다. 3초 지연은 이 왕복 경로 어딘가에서 난다." },
+  { id:"authn", term:"인증", en:"authentication", def:"‘누구인가’를 확인하는 것. 로그인이 대표적.", ex:"로그인에 성공했다는 건 '이 사람이 누구인지' 확인됐다는 뜻일 뿐, 무엇을 할 수 있는지까지 보장하지 않는다." },
+  { id:"authz", term:"인가", en:"authorization", def:"‘무엇을 할 수 있나’를 정하는 것. 로그인(인증)과 별개로, 남의 데이터 접근을 막는 건 인가의 몫.", ex:"로그인한 사용자가 주소창의 주문번호를 남의 것으로 바꿨는데 남의 주문이 보이면, 인증은 됐지만 인가가 빠진 것이다." },
+  { id:"cache", term:"캐시", en:"cache", def:"빠르게 보여주려고 값을 임시로 담아두는 것. 빠르지만 원본보다 낡을 수 있음.", ex:"관리자가 가격을 바꿨는데 고객 화면에 한동안 옛 가격이 보이면, 중간의 캐시가 낡은 값을 주고 있는지 의심한다." },
+  { id:"idempotency", term:"멱등성", en:"idempotency", def:"같은 요청이 여러 번 와도 결과가 한 번 한 것과 같게 유지되는 성질. 중복 결제 방지의 핵심.", ex:"결제 버튼을 두 번 눌러 두 번 결제되면, 같은 요청이 와도 한 번만 처리하는 멱등성이 없는 것이다." },
+  { id:"function_calling", term:"함수호출(툴)", en:"function calling", def:"AI가 자연어 질문을 실제 기능(DB 조회 등)에 연결해 실행하고, 그 결과를 답에 담는 방식.", ex:"챗봇이 '어제 매출'을 정확히 답한다면, 학습이 아니라 매출 조회 함수를 호출해 DB에서 읽어온 결과다." },
+  { id:"transaction", term:"트랜잭션", en:"transaction", def:"여러 작업을 하나로 묶어 모두 성공하거나 모두 취소되게 하는 단위. 부분 실패로 데이터가 어긋나는 걸 막음.", ex:"포인트 차감과 주문 생성이 하나로 묶이지 않으면, 포인트만 빠지고 주문은 안 생긴 어긋난 상태가 남는다." },
+  { id:"environment", term:"환경(개발/운영)", en:"environment", def:"코드가 도는 공간의 구분. 개발 환경과 실제 고객이 쓰는 운영 환경은 별개.", ex:"'올렸다'는 말이 개발 환경에 올린 것인지 실제 고객이 쓰는 운영 환경에 올린 것인지 확인해야 한다." },
+  { id:"rollback", term:"롤백", en:"rollback", def:"배포·변경이 잘못됐을 때 이전 상태로 되돌리는 것.", ex:"새 배포 후 결제 실패가 나면, 원인을 찾는 동안 이전 버전으로 되돌릴 수단이 있는지 본다." },
+  { id:"relation", term:"관계(외래키)", en:"relation / foreign key", def:"한 데이터가 다른 데이터를 가리키는 연결. 삭제 시 함께 지울지 막을지 같은 규칙이 여기 붙음.", ex:"사용자를 지울 때 그가 남긴 채팅이 함께 지워질지는, 두 데이터를 잇는 관계에 걸린 규칙(CASCADE 등)이 정한다." },
+  { id:"coupling", term:"결합도", en:"coupling", def:"부품끼리 얼마나 강하게 묶여 있는지. 강하면 하나를 바꿀 때 여러 곳이 함께 깨짐.", ex:"문자 발송 업체를 바꾸는데 코드 30군데를 고쳐야 한다면, 그 부품에 대한 결합도가 지나치게 높은 것이다." },
+  { id:"concurrency", term:"동시성·락", en:"concurrency / lock", def:"여러 요청이 같은 자원을 동시에 다룰 때 생기는 문제. 겹치지 않게 막는 장치가 락.", ex:"재고 1개를 두 사람이 동시에 주문해 둘 다 성공하고 재고가 -1이 되면, 확인·차감이 겹치지 않게 막는 락이 없는 것이다." },
+  { id:"rate_limit", term:"레이트리밋", en:"rate limit", def:"짧은 시간에 몰리는 호출 수를 제한하는 것. 오용·과금 폭탄을 막음.", ex:"로그인 없이 쓰는 AI 기능을 누가 자동으로 수천 번 부르면, 우리 쪽 호출 제한이 없을 때 과금이 폭증한다." },
+  { id:"hallucination", term:"환각", en:"hallucination", def:"AI가 사실이 아닌 내용을 그럴듯하게 지어내는 것. 근거와 대조해 걸러야 함.", ex:"챗봇이 존재하지 않는 환불 정책을 자신 있게 안내하면, 답을 실제 근거와 대조해 거르는 장치가 필요하다." },
+  { id:"timeout", term:"타임아웃", en:"timeout", def:"응답을 언제까지 기다릴지 정한 한도. 무한정 기다리지 않게 함.", ex:"외부 결제사가 응답을 안 줄 때 얼마나 기다리다 끊고 사용자에게 무엇을 보여줄지 정해두는 게 타임아웃이다." },
+  { id:"separation", term:"관심사 분리", en:"separation of concerns", def:"역할이 다른 일을 따로 나눠 두는 것. 하나를 바꿔도 다른 게 안 깨지게 함.", ex:"한 함수가 결제·이메일·통계를 다 맡고 있으면, 이메일 문구만 바꿔도 무관한 기능까지 영향받는다." },
+  { id:"observability", term:"관측성", en:"observability", def:"문제가 났는지 로그·모니터링으로 알아채는 능력.", ex:"문의가 들어와야 장애를 안다면 관측성이 부족한 것이다. 로그·모니터링으로 먼저 감지해야 한다." }
 ];
 const TERM_BY_ID = Object.fromEntries(TERMS.map(t => [t.id, t]));
 
@@ -5326,11 +5340,6 @@ function renderCase(app, caseId) {
   read.appendChild(h("div", { class:"card-basic", text:c.scenario }));
   read.appendChild(h("div", { class:"field-label", text:"엔지니어의 답변" }));
   read.appendChild(h("div", { class:"card-quote", text:c.engineer_claim }));
-  if (c.code_example) {
-    read.appendChild(h("div", { class:"field-label", text:"코드로 보기" }));
-    read.appendChild(codeBlock(c.code_example));
-  }
-  if (c.terms && c.terms.length) read.appendChild(termChips(c.terms, c.id));
   grid.appendChild(read);
 
   const solve = h("div", { class:"pane-solve" });
@@ -5512,6 +5521,7 @@ function termChips(ids, caseId) {
       logEvent("term_view", { termId:id, caseId });   // 모르는 용어 신호
       pop.appendChild(h("div", { class:"tp-term", text:t.term }));
       pop.appendChild(h("div", { class:"tp-def", text:t.def }));
+      if (t.ex) pop.appendChild(h("div", { class:"tp-ex" }, [ h("span", { class:"tp-exlabel", text:"풀이" }), document.createTextNode(t.ex) ]));
       const acts = h("div", { class:"tp-acts" }, [
         h("button", { class:"tp-more", type:"button", onclick:() => askTerm(t), text:"AI에게 물어보기" }),
         h("a", { class:"tp-more", href:"#/terms", text:"용어 전체 보기" })
@@ -5619,7 +5629,7 @@ function buildExplain(c) {
     const ic = h("span", { class:"tk-ic" }); ic.appendChild(icon("target", 18));
     tk.appendChild(ic);
     tk.appendChild(h("div", {}, [
-      h("div", { class:"tk-label", text:"검증 액션 · 이렇게 되물어라" }),
+      h("div", { class:"tk-label", text:"검증 액션" }),
       h("div", { class:"tk-text", text:c.takeaway })
     ]));
     box.appendChild(tk);
@@ -5628,12 +5638,21 @@ function buildExplain(c) {
   box.appendChild(h("div", { class:"field-label", text:"개념" }));
   const def = h("div", { class:"def-card" });
   def.appendChild(h("div", { class:"def", text:c.concept }));
-  def.appendChild(h("div", { class:"why-label", text:"왜 중요한가" }));
+  def.appendChild(h("div", { class:"why-label", text:"중요한 이유" }));
   def.appendChild(h("div", { class:"why", text:c.why }));
   box.appendChild(def);
 
   box.appendChild(h("div", { class:"field-label", text:"구조로 보기" }));
   box.appendChild(structureBlock(c));
+
+  // 코드로 보기 — 읽기용 스니펫 (해설 흐름에 포함)
+  if (c.code_example) {
+    box.appendChild(h("div", { class:"field-label", text:"코드로 보기" }));
+    box.appendChild(codeBlock(c.code_example));
+  }
+
+  // 이 케이스의 용어
+  if (c.terms && c.terms.length) box.appendChild(termChips(c.terms, c.id));
 
   // 복습 표시 토글
   const rt = h("button", { class:"btn btn-text review-toggle", style:"margin-top:8px" });
@@ -6004,6 +6023,7 @@ function renderTerms(app) {
     if (t.en) hd.appendChild(h("span", { class:"tt-en", text:t.en }));
     card.appendChild(hd);
     card.appendChild(h("div", { class:"tt-def", text:t.def }));
+    if (t.ex) card.appendChild(h("div", { class:"tt-ex" }, [ h("span", { class:"tt-exlabel", text:"풀이" }), document.createTextNode(t.ex) ]));
     list.appendChild(card);
   });
   wrap.appendChild(list);
@@ -6094,6 +6114,39 @@ function meCard(title) {
   return card;
 }
 
+/* ============================================================
+   챕터 — 무엇을 배우나 (주제 영역별 학습 목표·소재)
+   ============================================================ */
+const LEVEL_NAME = { L1:"토대", L2:"핵심", L3:"심화", L4:"신뢰성·설계", L0:"관통" };
+const LEVEL_ORDER = ["L1", "L2", "L3", "L4", "L0"];
+function renderChapters(app) {
+  const wrap = h("div", { class:"wrap narrow" });
+  wrap.appendChild(h("button", { class:"btn btn-text", style:"padding-left:0",
+    onclick:() => { if (history.length > 1) history.back(); else navigate("#/map"); } },
+    [ icon("arrowL", 16), h("span", { text:"뒤로" }) ]));
+  wrap.appendChild(h("h2", { class:"h2", text:"챕터 — 무엇을 배우나" }));
+  wrap.appendChild(h("p", { class:"lead", style:"font-size:15px",
+    text:"주제 영역마다 훈련하는 검증 사고가 다릅니다. 플레이는 난이도로 하고, 각 챕터가 다루는 소재를 여기서 봅니다." }));
+  LEVEL_ORDER.forEach(lv => {
+    const mods = MODULES.filter(m => m.level === lv);
+    if (!mods.length) return;
+    const sec = h("div", { class:"chap-sec" });
+    sec.appendChild(h("div", { class:"chap-level" }, [ h("span", { class:"chip level", text:lv }), h("span", { text:LEVEL_NAME[lv] }) ]));
+    mods.forEach(m => {
+      const cs = CASES.filter(c => c.module === m.id);
+      const topics = [...new Set(cs.map(c => c.topic))];
+      const card = h("div", { class:"chap-card" });
+      card.appendChild(h("div", { class:"chap-head" }, [ h("span", { class:"chap-id", text:m.id }), h("span", { class:"chap-title", text:m.title }) ]));
+      card.appendChild(h("div", { class:"chap-sum", text:m.summary }));
+      card.appendChild(h("div", { class:"chap-meta", text:`${cs.length}개 케이스` }));
+      if (topics.length) card.appendChild(h("div", { class:"chap-topics" }, topics.map(t => h("span", { class:"chip topic", text:t }))));
+      sec.appendChild(card);
+    });
+    wrap.appendChild(sec);
+  });
+  app.appendChild(wrap);
+}
+
 function renderError(app, msg) {
   const wrap = h("div", { class:"wrap narrow" });
   const card = h("div", { class:"card-basic", style:"text-align:center" });
@@ -6121,6 +6174,7 @@ function render(force) {
     else if (view === "summary") renderSummary(app);
     else if (view === "terms") renderTerms(app);
     else if (view === "me") renderMe(app);
+    else if (view === "chapters") renderChapters(app);
     else renderMap(app);
   } catch (e) {
     renderError(app, "화면을 그리는 중 오류가 발생했습니다. 새로고침 해주세요.");
@@ -6145,6 +6199,7 @@ function init() {
   document.getElementById("introBtn").addEventListener("click", () => navigate("#/intro"));
   document.getElementById("termsBtn").addEventListener("click", () => navigate("#/terms"));
   document.getElementById("meBtn").addEventListener("click", () => navigate("#/me"));
+  document.getElementById("chaptersBtn").addEventListener("click", () => navigate("#/chapters"));
   document.getElementById("themeBtn").addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme");
     applyTheme(cur === "dark" ? "light" : "dark");
